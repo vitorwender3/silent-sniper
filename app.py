@@ -70,4 +70,50 @@ if botao_escanear or (entrada and not botao_escanear):
                     cor_painel = "#2e7d32" if valor_graham > preco_atual else "#c62828"
                     
                     st.markdown(f"""
-                        <div style="background-color: {cor_painel}; padding: 20px; border-radius: 5px; color: white; font-family: monospace; line-height: 1
+                        <div style="background-color: {cor_painel}; padding: 20px; border-radius: 5px; color: white; font-family: monospace; line-height: 1.6;">
+                            EMPRESA: {info.get('longName', ticker)}<br>
+                            ATIVO: {ticker} | PREÇO: R$ {preco_atual:.2f}<br>
+                            --------------------------------------------<br>
+                            DY: {dy:.2f}% | P/VP: {pvp:.2f}<br>
+                            VPA: {vpa:.2f} | LPA: {lpa:.2f}<br>
+                            --------------------------------------------<br>
+                            VALOR GRAHAM: R$ {valor_graham:.2f} | MARGEM: {margem:.2f}%<br>
+                            🎯 OPORTUNIDADE: {'COMPRA' if valor_graham > preco_atual else 'AGUARDAR'}
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    st.markdown(f"<p style='text-align: center; color: white; margin-top: 20px;'>TENDÊNCIA 30D: {ticker}</p>", unsafe_allow_html=True)
+
+                    # --- GRÁFICO PROFISSIONAL (PLOTLY) ---
+                    fig = go.Figure()
+
+                    # Linha de Preço Justo (Verde Pontilhada)
+                    if valor_graham > 0:
+                        fig.add_shape(type="line", x0=hist.index[0], y0=valor_graham, x1=hist.index[-1], y1=valor_graham,
+                                    line=dict(color="green", width=2, dash="dash"))
+
+                    # Linha de Preço Real
+                    fig.add_trace(go.Scatter(x=hist.index, y=hist['Close'], mode='lines', line=dict(color='#58a6ff', width=3)))
+
+                    # Marcadores de Início (Vermelho) e Fim (Verde)
+                    fig.add_trace(go.Scatter(x=[hist.index[0]], y=[hist['Close'].iloc[0]], mode='markers', marker=dict(color='red', size=10)))
+                    fig.add_trace(go.Scatter(x=[hist.index[-1]], y=[hist['Close'].iloc[-1]], mode='markers', marker=dict(color='lightgreen', size=10)))
+
+                    # Layout idêntico ao seu print de Desktop (Grid Pontilhado)
+                    fig.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)', 
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=0, r=0, t=0, b=0), 
+                        height=300,
+                        xaxis=dict(showgrid=True, gridcolor='#333', gridwidth=1, griddash='dot'),
+                        yaxis=dict(showgrid=True, gridcolor='#333', gridwidth=1, griddash='dot'),
+                        showlegend=False
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                else:
+                    st.error("Dados não encontrados para este ativo.")
+            except Exception:
+                st.error("Erro na conexão. Verifique o código do ativo ou tente novamente.")
+    else:
+        st.warning("Digite um nome ou ticker para escanear.")
