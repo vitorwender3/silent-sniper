@@ -1,13 +1,20 @@
 import streamlit as st
 import yfinance as yf
 import math
-import pandas as pd
 
 st.set_page_config(page_title="Silent Sniper Pro", page_icon="🎯")
 
-st.markdown("<h1 style='text-align: center; color: #58a6ff;'>SILENT SNIPER PRO</h1>", unsafe_allow_html=True)
+# CSS para esconder menus desnecessários e focar no conteúdo
+st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
 
-# Dicionário de tradução otimizado
+st.markdown("<h1 style='text-align: center; color: #58a6ff; font-size: 24px;'>SILENT SNIPER PRO</h1>", unsafe_allow_html=True)
+
 APELIDOS = {
     "PETROBRAS": "PETR4", "VALE": "VALE3", "BANCO DO BRASIL": "BBAS3",
     "BRADESCO": "BBDC4", "ITAU": "ITUB4", "ITAÚ": "ITUB4",
@@ -24,25 +31,18 @@ if entrada_usuario:
     ticker = APELIDOS.get(entrada_usuario, entrada_usuario)
     t_full = f"{ticker}.SA" if not ticker.endswith(".SA") else ticker
     
-    with st.spinner(f'Sniper analisando {ticker}...'):
+    with st.spinner('Sincronizando com o mercado...'):
         try:
-            # NOVO: Adicionando cabeçalho para evitar bloqueio
             acao = yf.Ticker(t_full)
-            
-            # Força a busca dos dados históricos primeiro
             hist = acao.history(period="1mo")
             
-            if hist.empty:
-                st.error(f"Sem dados para '{ticker}'. Tente o código (ex: BBDC4)")
-            else:
-                # Tenta pegar as info fundamentais
+            if not hist.empty:
                 info = acao.info
                 preco_atual = hist['Close'].iloc[-1]
-                
                 vpa = info.get('bookValue', 0)
                 lpa = info.get('trailingEps', 0)
                 
-                st.subheader(f"Análise de {ticker}")
+                st.markdown(f"### Análise de **{ticker}**")
                 
                 if vpa and lpa and vpa > 0 and lpa > 0:
                     valor_graham = math.sqrt(22.5 * vpa * lpa)
@@ -50,18 +50,19 @@ if entrada_usuario:
                     
                     col1, col2 = st.columns(2)
                     col1.metric("Preço Atual", f"R$ {preco_atual:.2f}")
-                    col2.metric("Preço Justo (Graham)", f"R$ {valor_graham:.2f}", f"{margem:.1f}%")
+                    col2.metric("Preço Justo", f"R$ {valor_graham:.2f}", f"{margem:.1f}%")
                     
                     if valor_graham > preco_atual:
                         st.success(f"🎯 OPORTUNIDADE: Margem de {margem:.1f}%")
                     else:
-                        st.warning("⚖️ ATIVO ACIMA DO PREÇO JUSTO")
+                        st.warning("⚖️ ACIMA DO PREÇO JUSTO")
                 else:
-                    st.info("Nota: VPA/LPA não disponíveis. Exibindo apenas cotação.")
                     st.metric("Preço Atual", f"R$ {preco_atual:.2f}")
                 
-                # Gráfico
-                st.line_chart(hist['Close'])
-                    
+                # --- GRÁFICO OTIMIZADO ---
+                # Removemos as legendas e ajustamos a cor para o padrão do Sniper
+                chart_data = hist[['Close']].copy()
+                st.area_chart(chart_data, color="#58a6ff")
+                
         except Exception:
-            st.error("O mercado está demorando a responder. Tente novamente em 10 segundos.")
+            st.error("Erro ao conectar. Tente novamente.")
